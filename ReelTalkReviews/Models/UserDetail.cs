@@ -13,8 +13,6 @@ public partial class UserDetail
 
     public string? Password { get; set; }
 
-    public byte[]? DisplayPic { get; set; }
-
     public string? Bio { get; set; }
 
     public bool? IsDeleted { get; set; }
@@ -25,9 +23,9 @@ public partial class UserDetail
 
     public int? RoleId { get; set; }
 
-    public bool? IsLogged { get; set; }
-
     public DateTime? LastLoginDate { get; set; }
+
+    public byte[]? DisplayPic { get; set; }
 
     public virtual ICollection<MovieRating> MovieRatings { get; set; } = new List<MovieRating>();
 

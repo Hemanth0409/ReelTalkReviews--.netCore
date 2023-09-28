@@ -4,12 +4,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.DotNet.Scaffolding.Shared.Messaging;
 using Microsoft.EntityFrameworkCore;
 using ReelTalkReviews.Models;
 
 namespace ReelTalkReviews.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/[controller]/[action]")]
     [ApiController]
     public class UserDetailsController : ControllerBase
     {
@@ -19,14 +20,14 @@ namespace ReelTalkReviews.Controllers
         {
             _context = context;
         }
-
+       
         // GET: api/UserDetails
         [HttpGet]
         public async Task<ActionResult<IEnumerable<UserDetail>>> GetUserDetails()
         {
             if (_context.UserDetails == null)
             {
-                return NotFound();
+                return NotFound("No Value found");
             }
             return await _context.UserDetails.ToListAsync();
         }
@@ -76,38 +77,61 @@ namespace ReelTalkReviews.Controllers
 
             return NoContent();
         }
+        [HttpPost("authenticate")]
+        public async Task<IActionResult> Authenticate([FromBody] UserLogin userObj)
+        {
+            if (userObj == null)
+
+                return BadRequest();
+
+
+            UserDetail? user = await _context.UserDetails.FirstOrDefaultAsync(user => user.Email.ToLower() == userObj.Email.ToLower());
+            if (user == null)
+                return NotFound(new { Message = "User not found!" });
+
+            if (!PasswordHasher.VerifyPassword(userObj.Password, user.Password))
+            {
+                return BadRequest(new { Message = "Password is Incorrect" });
+            }
+
+            if (user == null)
+            
+                return NotFound(new { Message = "User Not Found" });
+            
+            return Ok(new {Message="Login Successfull" });
+        }
 
         // POST: api/UserDetails
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
+        [HttpPost("register")]
         public async Task<ActionResult<UserDetail>> PostUserDetail([FromBody] UserDetail userDetail)
         {
+            if (await CheckUserName(userDetail.UserName))
+                return BadRequest(new { Message = "UserName Already Exist!" });
+            if (await CheckEmail(userDetail.Email))
+                return BadRequest(new { Message = "Email Already Exist!" });
             userDetail.UserName = userDetail.UserName;
-            userDetail.Email = userDetail.Email;
-            userDetail.Password = userDetail.Password;
-            userDetail.IsDeleted = false;
-            userDetail.IsLogged = false;
+            
+            userDetail.Email = userDetail.Email?.ToLower();
+            userDetail.Password = PasswordHasher.HashPassword(userDetail.Password);
+            userDetail.IsDeleted = false;         
             userDetail.RoleId = 2;
             userDetail.CreatedDate = DateTime.Now;
             userDetail.ModifiedDate = null;
             userDetail.Bio = userDetail.Bio;
             userDetail.DisplayPic = userDetail.DisplayPic;
             userDetail.LastLoginDate = null;
-            //if (imageFile != null && imageFile.Length > 0)
-            //{
-            //    using (var ms = new MemoryStream())
-            //    {
-            //        imageFile.CopyTo(ms)
-            //;
-            //        var imageBytes = ms.ToArray();
-            //        // Save imageBytes to SQL Server as varbinary
-            //    }
-            //}
+         
             _context.UserDetails.Add(userDetail);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetUserDetail", new { id = userDetail.UserId }, userDetail);
         }
+    private async Task<bool>CheckUserName(string UserName)
+            => await _context.UserDetails.AnyAsync(user => user.UserName == UserName);
+
+        private async Task<bool> CheckEmail(string Email)
+        => await _context.UserDetails.AnyAsync(user => user.Email == Email);
 
         // DELETE: api/UserDetails/5
         [HttpDelete("{id}")]

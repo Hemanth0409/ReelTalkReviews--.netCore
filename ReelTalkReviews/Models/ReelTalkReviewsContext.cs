@@ -33,7 +33,6 @@ public partial class ReelTalkReviewsContext : DbContext
 
     public virtual DbSet<UserDetail> UserDetails { get; set; }
 
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<CastDetail>(entity =>
