@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using ReelTalkReviews.Models;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,20 +28,27 @@ builder.Services.AddCors(options =>
                                 .AllowAnyMethod();
         });
 });
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(option =>
+builder.Services.AddAuthentication(authenticate =>
+{
+    authenticate.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    authenticate.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+
+}).AddJwtBearer(x =>
+{
+    x.RequireHttpsMetadata = false;
+    x.SaveToken = true;
+
+    //Use to validate all the issuer and audience using TokenValidationParameter
+    x.TokenValidationParameters = new TokenValidationParameters
     {
-        option.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder. Configuration["Jwt:Audience"],
-            IssuerSigningKey=new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
-        };
-    });
+        //Both should be check to valid the user
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("GnXXMmNjWUkjXQyJmoBesXgSRXEica7n")),
+        ValidateAudience = false,
+        ValidateIssuer = false
+
+    };
+});
 builder.Services.AddMvc();
 builder.Services.AddControllers();
 builder.Services.AddRazorPages();
@@ -53,7 +62,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-
+app.UseCors("AllowOrigin");
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
@@ -61,6 +70,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
- 
-app.UseCors("AllowOrigin");
+
+
 app.Run();
