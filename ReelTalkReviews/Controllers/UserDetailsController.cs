@@ -13,6 +13,8 @@ using System.Text;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Cryptography;
+using ReelTalkReviews.Models.Dto;
 
 namespace ReelTalkReviews.Controllers
 {
@@ -31,7 +33,7 @@ namespace ReelTalkReviews.Controllers
         [Authorize]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<UserDetail>>> GetUserDetails()
-        {         
+        {
             return await _context.UserDetails.ToListAsync();
         }
 
@@ -102,19 +104,25 @@ namespace ReelTalkReviews.Controllers
                 return NotFound(new { Message = "User Not Found" });
             user.LastLoginDate = DateTime.Now;
             user.Token = CreateJwt(user);
+            var newAccessToken = user.Token;
+            var newRefreshToken = CreateRefreshtoken();
+            user.RefreshToken = newRefreshToken;
+            //user.RefreshTokenExpiry=DateTime.Now.AddDays(7);
+            await _context.SaveChangesAsync();
             try
             {
                 _context.Entry(user).State = EntityState.Modified;
                 _context.SaveChanges();
             }
-            catch(Exception Ex ) {
+            catch (Exception Ex)
+            {
                 return BadRequest(Ex.Message);
             }
-    
-            return Ok(new
+
+            return Ok(new TokenApiDto()
             {
-                Token = user.Token,
-                Message = "Login Successfull"
+                AccessToken =newAccessToken,
+                RefreshToken = newRefreshToken
             });
         }
 
@@ -166,13 +174,71 @@ namespace ReelTalkReviews.Controllers
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = identity,
-                Expires = DateTime.Now.AddDays(1),
+                Expires = DateTime.Now.AddSeconds(10),
                 SigningCredentials = credentials
             };
             var token = jwtTokenHandler.CreateToken(tokenDescriptor);
             return jwtTokenHandler.WriteToken(token);
         }
+        private string CreateRefreshtoken()
+        {
+            var tokenBytes = RandomNumberGenerator.GetBytes(64);
+            var refreshToken = Convert.ToBase64String(tokenBytes);
 
+            var tokenUser = _context.UserDetails.Any(a => a.RefreshToken == refreshToken);
+            if (tokenUser)
+            {
+                return CreateRefreshtoken();
+            }
+            return refreshToken;
+        }
+
+        private ClaimsPrincipal GetPrincipleFromExpiredToken(string token)
+        {
+            var key = Encoding.ASCII.GetBytes("GnXXMmNjWUkjXQyJmoBesXgSRXEica7n");
+            var tokenValidationParameter = new TokenValidationParameters
+            {
+                ValidateAudience = false,
+                ValidateIssuer = false,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateLifetime = false,
+            };
+            var tokenHandler = new JwtSecurityTokenHandler();
+            SecurityToken securityToken;
+            var pricipal = tokenHandler.ValidateToken(token, tokenValidationParameter, out securityToken);
+            var jwtSecurityToken = securityToken as JwtSecurityToken;
+            if (jwtSecurityToken == null || jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+            {
+                throw new SecurityTokenException("This is Invalid");
+            }
+            return pricipal;
+        }
+        [HttpPost]
+        public async Task<IActionResult> Refresh(TokenApiDto tokenApiDto)
+        {
+            if (tokenApiDto is null)
+            {
+                return BadRequest("Invalid Client Request");
+            }
+            string accessToken = tokenApiDto.AccessToken;
+            string refreshToken = tokenApiDto.RefreshToken;
+            var pricipal = GetPrincipleFromExpiredToken(accessToken);
+            var userName = pricipal.Identity.Name;
+            var user = await _context.UserDetails.FirstOrDefaultAsync(u => u.UserName == userName);
+            if (user is null || user.RefreshToken != refreshToken || user.RefreshTokenExpiry <= DateTime.Now)
+                return BadRequest("Invalid Request");
+            var newAccessToken = CreateJwt(user);
+            var newRefreshToken = CreateRefreshtoken();
+            user.RefreshToken = newRefreshToken;
+            await _context.SaveChangesAsync();
+            return Ok(new TokenApiDto()
+            {
+                AccessToken=newAccessToken,
+                RefreshToken=newRefreshToken,
+            });
+
+        }
 
         // DELETE: api/UserDetails/5
         [HttpDelete("{id}")]

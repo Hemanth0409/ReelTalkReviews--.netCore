@@ -29,6 +29,10 @@ public partial class UserDetail
 
     public string? Token { get; set; }
 
+    public DateTime? RefreshTokenExpiry { get; set; }
+
+    public string? RefreshToken { get; set; }
+
     public virtual ICollection<MovieRating> MovieRatings { get; set; } = new List<MovieRating>();
 
     public virtual Role? Role { get; set; }
