@@ -15,18 +15,23 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Cryptography;
 using ReelTalkReviews.Models.Dto;
+using ReelTalkReviews.Helper;
+using ReelTalkReviews.UtilitService;
 
-namespace ReelTalkReviews.Controllers
+namespace ReelTalkReviews.Conrollers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
     public class UserDetailsController : ControllerBase
     {
         private readonly ReelTalkReviewsContext _context;
-
-        public UserDetailsController(ReelTalkReviewsContext context)
+        private readonly IConfiguration _configuration;
+        private readonly IEmailService _emailService;
+        public UserDetailsController(ReelTalkReviewsContext context, IConfiguration configuration, IEmailService emailService)
         {
             _context = context;
+            _configuration = configuration;
+            _emailService = emailService;
         }
 
         // GET: api/UserDetails
@@ -107,7 +112,7 @@ namespace ReelTalkReviews.Controllers
             var newAccessToken = user.Token;
             var newRefreshToken = CreateRefreshtoken();
             user.RefreshToken = newRefreshToken;
-            //user.RefreshTokenExpiry=DateTime.Now.AddDays(7);
+            user.RefreshTokenExpiry = DateTime.Now.AddDays(7);
             await _context.SaveChangesAsync();
             try
             {
@@ -121,7 +126,7 @@ namespace ReelTalkReviews.Controllers
 
             return Ok(new TokenApiDto()
             {
-                AccessToken =newAccessToken,
+                AccessToken = newAccessToken,
                 RefreshToken = newRefreshToken
             });
         }
@@ -234,8 +239,8 @@ namespace ReelTalkReviews.Controllers
             await _context.SaveChangesAsync();
             return Ok(new TokenApiDto()
             {
-                AccessToken=newAccessToken,
-                RefreshToken=newRefreshToken,
+                AccessToken = newAccessToken,
+                RefreshToken = newRefreshToken,
             });
 
         }
@@ -264,5 +269,68 @@ namespace ReelTalkReviews.Controllers
         {
             return (_context.UserDetails?.Any(e => e.UserId == id)).GetValueOrDefault();
         }
+        [HttpPost("send-reset-email/{email}")]
+        public async Task<IActionResult> SendEmail(string email)
+        {
+            var user = await _context.UserDetails.FirstOrDefaultAsync(a => a.Email == email);
+            if (user is null)
+            {
+                return NotFound(new
+                {
+                    StatusCode = 404,
+                    Message = "Email Doesn't Exist"
+                });
+            }
+            var tokenBytes = RandomNumberGenerator.GetBytes(64);
+            var emailToken = Convert.ToBase64String(tokenBytes);
+            user.ResetPasswordToken = emailToken;
+            user.ResetPasswordTokenExpiry = DateTime.Now.AddMinutes(15);
+            string from = _configuration["EmailSettings:From"];
+            var emailModel = new EmailModel(email, "Reset passwort", EmailBody.EmailStringBody(email, emailToken));
+            _emailService.SendEmail(emailModel);
+            _context.Entry(user).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                StatusCode = 200,
+                Message = "Email Sent"
+            });
+
+        }
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordDto resetPasswordDto)
+        {
+            var newtoken = resetPasswordDto.EmailToken.Replace("", "+");
+            var user = await _context.UserDetails.AsNoTracking().FirstOrDefaultAsync(a => a.Email == resetPasswordDto.Email);
+            if (user is null)
+            {
+                return NotFound(new
+                {
+                    StatusCode = 404,
+                    Message = "Email Doesn't Exist"
+                });
+            }
+            var tokenCode = user.ResetPasswordToken;
+            DateTime emailTokenExpiry = Convert.ToDateTime(user.ResetPasswordTokenExpiry);
+            if (tokenCode != resetPasswordDto.EmailToken || emailTokenExpiry < DateTime.Now)
+            {
+                return BadRequest(new
+                {
+                    StatusCode = 400,
+                    Message = "InValid Reset Link"
+                });
+            }
+            user.Password = PasswordHasher.HashPassword(resetPasswordDto.NewPassword);
+            _context.Entry(user).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+            return Ok(new
+            {
+                StatusCode = 200,
+                Message = "Password reset successfully!!"
+            });
+
+        }
+
     }
 }

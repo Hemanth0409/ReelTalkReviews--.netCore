@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using ReelTalkReviews.Models;
+using ReelTalkReviews.UtilitService;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,6 +29,10 @@ builder.Services.AddCors(options =>
                                 .AllowAnyMethod();
         });
 });
+//builder.Services.AddScoped<IMailKitProvider, YourMailKitProviderImplementation>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+
+
 builder.Services.AddAuthentication(authenticate =>
 {
     authenticate.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

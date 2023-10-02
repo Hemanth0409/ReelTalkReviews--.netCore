@@ -33,6 +33,10 @@ public partial class UserDetail
 
     public string? RefreshToken { get; set; }
 
+    public string? ResetPasswordToken { get; set; }
+
+    public DateTime? ResetPasswordTokenExpiry { get; set; }
+
     public virtual ICollection<MovieRating> MovieRatings { get; set; } = new List<MovieRating>();
 
     public virtual Role? Role { get; set; }
