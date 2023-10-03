@@ -13,6 +13,8 @@ public partial class MovieRating
 
     public int? Rating { get; set; }
 
+    public string? Review { get; set; }
+
     public virtual MovieDetail? Movie { get; set; }
 
     public virtual UserDetail? User { get; set; }

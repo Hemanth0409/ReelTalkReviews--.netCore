@@ -17,7 +17,7 @@ using System.Security.Cryptography;
 using ReelTalkReviews.Models.Dto;
 using ReelTalkReviews.Helper;
 using ReelTalkReviews.UtilitService;
-
+using NETCore.MailKit;
 namespace ReelTalkReviews.Conrollers
 {
     [Route("api/[controller]/[action]")]
@@ -228,7 +228,7 @@ namespace ReelTalkReviews.Conrollers
             }
             string accessToken = tokenApiDto.AccessToken;
             string refreshToken = tokenApiDto.RefreshToken;
-            var pricipal = GetPrincipleFromExpiredToken(accessToken);
+            var pricipal = GetPrincipleFromExpiredToken(refreshToken);
             var userName = pricipal.Identity.Name;
             var user = await _context.UserDetails.FirstOrDefaultAsync(u => u.UserName == userName);
             if (user is null || user.RefreshToken != refreshToken || user.RefreshTokenExpiry <= DateTime.Now)
@@ -284,7 +284,7 @@ namespace ReelTalkReviews.Conrollers
             var tokenBytes = RandomNumberGenerator.GetBytes(64);
             var emailToken = Convert.ToBase64String(tokenBytes);
             user.ResetPasswordToken = emailToken;
-            user.ResetPasswordTokenExpiry = DateTime.Now.AddMinutes(15);
+            user.ResetPasswordTokenExpiry = DateTime.Now.AddDays(7);
             string from = _configuration["EmailSettings:From"];
             var emailModel = new EmailModel(email, "Reset passwort", EmailBody.EmailStringBody(email, emailToken));
             _emailService.SendEmail(emailModel);
