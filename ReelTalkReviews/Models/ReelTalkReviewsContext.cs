@@ -179,6 +179,7 @@ public partial class ReelTalkReviewsContext : DbContext
             entity.Property(e => e.MovieType)
                 .HasMaxLength(50)
                 .IsUnicode(false);
+            entity.Property(e => e.ReleaseDate).HasColumnType("date");
 
             entity.HasOne(d => d.FilmCertification).WithMany(p => p.MovieDetails)
                 .HasForeignKey(d => d.FilmCertificationId)

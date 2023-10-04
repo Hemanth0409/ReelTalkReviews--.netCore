@@ -23,6 +23,8 @@ public partial class MovieDetail
 
     public DateTime? ModifiedDate { get; set; }
 
+    public DateTime? ReleaseDate { get; set; }
+
     public virtual ICollection<CastDetail> CastDetails { get; set; } = new List<CastDetail>();
 
     public virtual ICollection<Crew> Crews { get; set; } = new List<Crew>();

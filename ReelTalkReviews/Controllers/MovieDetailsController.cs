@@ -92,7 +92,8 @@ namespace ReelTalkReviews.Controllers
             movieDetail.CreateDate= DateTime.Now;
             movieDetail.ModifiedDate= DateTime.Now;
             movieDetail.IsDeleted=false;
-            movieDetail.MovieRatingOverall = 10;
+            movieDetail.ReleaseDate=movieDetail.ReleaseDate;
+            movieDetail.MovieRatingOverall = 0 ;
             movieDetail.FilmCertificationId = FilmCertificationId;
             _context.MovieDetails.Add(movieDetail);
             await _context.SaveChangesAsync();
