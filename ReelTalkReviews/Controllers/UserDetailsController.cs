@@ -33,7 +33,7 @@ namespace ReelTalkReviews.Conrollers
             _configuration = configuration;
             _emailService = emailService;
         }
-
+        
         // GET: api/UserDetails
         [Authorize]
         [HttpGet]
