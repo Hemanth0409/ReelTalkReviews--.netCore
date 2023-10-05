@@ -33,7 +33,7 @@ namespace ReelTalkReviews.Conrollers
             _configuration = configuration;
             _emailService = emailService;
         }
-        
+
         // GET: api/UserDetails
         [Authorize]
         [HttpGet]
@@ -171,7 +171,9 @@ namespace ReelTalkReviews.Conrollers
             var identity = new ClaimsIdentity(new Claim[]
             {
                 new Claim(ClaimTypes.Role,RoleName.RoleName),
-                new Claim(ClaimTypes.Name,user.UserName)
+                new Claim(ClaimTypes.Name,user.UserName),
+                new Claim(JwtRegisteredClaimNames.Sub,user.UserId.ToString()),
+
             });
             //Use convert the Key into Bytes
             var credentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);

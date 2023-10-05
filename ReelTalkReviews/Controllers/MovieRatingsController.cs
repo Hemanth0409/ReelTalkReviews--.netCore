@@ -9,7 +9,7 @@ using ReelTalkReviews.Models;
 
 namespace ReelTalkReviews.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/[controller]/[action]")]
     [ApiController]
     public class MovieRatingsController : ControllerBase
     {
@@ -85,13 +85,8 @@ namespace ReelTalkReviews.Controllers
         [HttpPost]
         public async Task<ActionResult<MovieRating>> PostMovieRating(MovieRating movieRating)
         {
-          if (_context.MovieRatings == null)
-          {
-              return Problem("Entity set 'ReelTalkReviewsContext.MovieRatings'  is null.");
-          }
             _context.MovieRatings.Add(movieRating);
-            await _context.SaveChangesAsync();
-
+            await _context.SaveChangesAsync();  
             return CreatedAtAction("GetMovieRating", new { id = movieRating.MovieRatingId }, movieRating);
         }
 

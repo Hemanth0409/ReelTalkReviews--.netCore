@@ -94,7 +94,7 @@ namespace ReelTalkReviews.Controllers
             movieDetail.IsDeleted=false;
             movieDetail.ReleaseDate=movieDetail.ReleaseDate;
             movieDetail.MovieRatingOverall = 0 ;
-            movieDetail.FilmCertificationId = FilmCertificationId;
+            movieDetail.FilmCertificationId = FilmCertificationId; 
             _context.MovieDetails.Add(movieDetail);
             await _context.SaveChangesAsync();
 
