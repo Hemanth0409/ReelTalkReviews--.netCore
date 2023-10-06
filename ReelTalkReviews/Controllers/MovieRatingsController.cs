@@ -90,6 +90,15 @@ namespace ReelTalkReviews.Controllers
             return CreatedAtAction("GetMovieRating", new { id = movieRating.MovieRatingId }, movieRating);
         }
 
+        [HttpGet("count/{movieId}")]
+        public async Task<ActionResult<int>> GetRatingCountForMovie(int movieId)
+        {
+            var ratingCount = await _context.MovieRatings
+                .Where(r => r.MovieId == movieId)
+                .CountAsync();
+
+            return Ok(ratingCount);
+        }
         // DELETE: api/MovieRatings/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteMovieRating(int id)

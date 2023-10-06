@@ -25,6 +25,8 @@ public partial class MovieDetail
 
     public DateTime? ReleaseDate { get; set; }
 
+    public int? RatingCount { get; set; }
+
     public virtual ICollection<CastDetail> CastDetails { get; set; } = new List<CastDetail>();
 
     public virtual ICollection<Crew> Crews { get; set; } = new List<Crew>();

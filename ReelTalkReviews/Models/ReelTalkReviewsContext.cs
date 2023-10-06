@@ -33,10 +33,7 @@ public partial class ReelTalkReviewsContext : DbContext
 
     public virtual DbSet<UserDetail> UserDetails { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=DESKTOP-DBQ88HK\\SQLEXPRESS2019;Database=ReelTalkReviews;Trusted_Connection=True;TrustServerCertificate=True;");
-
+  
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<CastDetail>(entity =>
@@ -199,7 +196,11 @@ public partial class ReelTalkReviewsContext : DbContext
         {
             entity.HasKey(e => e.MovieRatingId).HasName("PK__MovieRat__AB2CC873E857B0AF");
 
-            entity.ToTable("MovieRating");
+            entity.ToTable("MovieRating", tb =>
+                {
+                    tb.HasTrigger("UpdateMovieRatingOverall");
+                    tb.HasTrigger("trg_UpdateRatingCount");
+                });
 
             entity.Property(e => e.Review)
                 .IsUnicode(false)
