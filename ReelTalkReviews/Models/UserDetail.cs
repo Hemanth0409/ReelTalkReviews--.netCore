@@ -25,7 +25,7 @@ public partial class UserDetail
 
     public DateTime? LastLoginDate { get; set; }
 
-    public byte[]? DisplayPic { get; set; }
+    public string? DisplayPic { get; set; }
 
     public string? Token { get; set; }
 

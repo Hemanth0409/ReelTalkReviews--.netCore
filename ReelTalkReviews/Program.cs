@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using ReelTalkReviews.Models;
 using ReelTalkReviews.UtilitService;
@@ -28,6 +30,12 @@ builder.Services.AddCors(options =>
                                 .AllowAnyHeader()
                                 .AllowAnyMethod();
         });
+});
+builder.Services.Configure<FormOptions>(o =>
+{
+    o.ValueLengthLimit = int.MaxValue;
+    o.MultipartBodyLengthLimit = int.MaxValue;
+    o.MemoryBufferThreshold = int.MaxValue;
 });
 //builder.Services.AddScoped<IMailKitProvider, YourMailKitProviderImplementation>();
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -68,7 +76,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowOrigin");
-
+app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider=new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(),@"Resources")),
+    RequestPath=new PathString("/Resources")
+});
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();

@@ -85,10 +85,7 @@ namespace ReelTalkReviews.Controllers
         [HttpPost]
         public async Task<ActionResult<FilmIndustryMember>> PostFilmIndustryMember(FilmIndustryMember filmIndustryMember)
         {
-          if (_context.FilmIndustryMembers == null)
-          {
-              return Problem("Entity set 'ReelTalkReviewsContext.FilmIndustryMembers'  is null.");
-          }
+         
             _context.FilmIndustryMembers.Add(filmIndustryMember);
             await _context.SaveChangesAsync();
 

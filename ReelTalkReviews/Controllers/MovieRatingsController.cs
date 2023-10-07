@@ -24,10 +24,10 @@ namespace ReelTalkReviews.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<MovieRating>>> GetMovieRatings()
         {
-          if (_context.MovieRatings == null)
-          {
-              return NotFound();
-          }
+            if (_context.MovieRatings == null)
+            {
+                return NotFound();
+            }
             return await _context.MovieRatings.ToListAsync();
         }
 
@@ -35,10 +35,10 @@ namespace ReelTalkReviews.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<MovieRating>> GetMovieRating(int id)
         {
-          if (_context.MovieRatings == null)
-          {
-              return NotFound();
-          }
+            if (_context.MovieRatings == null)
+            {
+                return NotFound();
+            }
             var movieRating = await _context.MovieRatings.FindAsync(id);
 
             if (movieRating == null)
@@ -86,7 +86,7 @@ namespace ReelTalkReviews.Controllers
         public async Task<ActionResult<MovieRating>> PostMovieRating(MovieRating movieRating)
         {
             _context.MovieRatings.Add(movieRating);
-            await _context.SaveChangesAsync();  
+            await _context.SaveChangesAsync();
             return CreatedAtAction("GetMovieRating", new { id = movieRating.MovieRatingId }, movieRating);
         }
 

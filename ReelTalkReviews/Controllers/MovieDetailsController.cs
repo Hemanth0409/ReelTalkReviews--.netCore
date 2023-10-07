@@ -48,6 +48,24 @@ namespace ReelTalkReviews.Controllers
 
             return movieDetail;
         }
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Certification>>> GetMovieDetailCertification()
+        {
+            if (_context.MovieDetails == null)
+            {
+                return NotFound();
+            }
+            return await _context.Certifications.ToListAsync();
+        }
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Certification>> GetMovieDetailFilm(int id)
+        {
+            var certification = await _context.Certifications.FindAsync(id);
+
+           
+            return certification;
+        }
+
 
         // PUT: api/MovieDetails/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
