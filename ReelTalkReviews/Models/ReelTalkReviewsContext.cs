@@ -17,8 +17,6 @@ public partial class ReelTalkReviewsContext : DbContext
 
     public virtual DbSet<CastDetail> CastDetails { get; set; }
 
-    public virtual DbSet<Certification> Certifications { get; set; }
-
     public virtual DbSet<Crew> Crews { get; set; }
 
     public virtual DbSet<FilmCertification> FilmCertifications { get; set; }
@@ -27,11 +25,17 @@ public partial class ReelTalkReviewsContext : DbContext
 
     public virtual DbSet<MovieDetail> MovieDetails { get; set; }
 
+    public virtual DbSet<MoviePhoto> MoviePhotos { get; set; }
+
     public virtual DbSet<MovieRating> MovieRatings { get; set; }
 
     public virtual DbSet<Role> Roles { get; set; }
 
     public virtual DbSet<UserDetail> UserDetails { get; set; }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Server=DESKTOP-DBQ88HK\\SQLEXPRESS2019;Database=ReelTalkReviews;Trusted_Connection=True;TrustServerCertificate=True;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -96,19 +100,6 @@ public partial class ReelTalkReviewsContext : DbContext
                 .HasConstraintName("FK__CastData__MovieI__208CD6FA");
         });
 
-        modelBuilder.Entity<Certification>(entity =>
-        {
-            entity
-                .HasNoKey()
-                .ToView("certification");
-
-            entity.Property(e => e.FilmcertificationType)
-                .HasMaxLength(5)
-                .IsUnicode(false)
-                .HasColumnName("filmcertificationType");
-            entity.Property(e => e.Movieid).HasColumnName("movieid");
-        });
-
         modelBuilder.Entity<Crew>(entity =>
         {
             entity.HasKey(e => e.CrewId).HasName("PK__Crew__89BCFC2982A905CD");
@@ -168,7 +159,6 @@ public partial class ReelTalkReviewsContext : DbContext
             entity.Property(e => e.MemberName)
                 .HasMaxLength(50)
                 .IsUnicode(false);
-            entity.Property(e => e.MemberPic).IsUnicode(false);
             entity.Property(e => e.Place)
                 .HasMaxLength(30)
                 .IsUnicode(false);
@@ -180,19 +170,8 @@ public partial class ReelTalkReviewsContext : DbContext
 
             entity.ToTable("MovieDetail");
 
-            entity.Property(e => e.Actor1).IsUnicode(false);
-            entity.Property(e => e.Actor2).IsUnicode(false);
-            entity.Property(e => e.Actor3).IsUnicode(false);
             entity.Property(e => e.CreateDate).HasColumnType("date");
-            entity.Property(e => e.Director)
-                .IsUnicode(false)
-                .HasColumnName("director");
             entity.Property(e => e.ModifiedDate).HasColumnType("date");
-            entity.Property(e => e.MovieDescription).IsUnicode(false);
-            entity.Property(e => e.MoviePoster).IsUnicode(false);
-            entity.Property(e => e.MoviePoster2)
-                .IsUnicode(false)
-                .HasColumnName("moviePoster2");
             entity.Property(e => e.MovieRatingOverall).HasColumnType("decimal(3, 1)");
             entity.Property(e => e.MovieTitle)
                 .HasMaxLength(50)
@@ -200,9 +179,6 @@ public partial class ReelTalkReviewsContext : DbContext
             entity.Property(e => e.MovieType)
                 .HasMaxLength(50)
                 .IsUnicode(false);
-            entity.Property(e => e.MusicDirector)
-                .IsUnicode(false)
-                .HasColumnName("musicDirector");
             entity.Property(e => e.ReleaseDate).HasColumnType("date");
 
             entity.HasOne(d => d.FilmCertification).WithMany(p => p.MovieDetails)
@@ -210,15 +186,20 @@ public partial class ReelTalkReviewsContext : DbContext
                 .HasConstraintName("FK__MovieDeta__FilmC__6E01572D");
         });
 
+        modelBuilder.Entity<MoviePhoto>(entity =>
+        {
+            entity.HasKey(e => e.MoviePicId).HasName("PK__MoviePho__61D4B0C1799619EC");
+
+            entity.HasOne(d => d.Movie).WithMany(p => p.MoviePhotos)
+                .HasForeignKey(d => d.MovieId)
+                .HasConstraintName("FK__MoviePhot__Movie__756D6ECB");
+        });
+
         modelBuilder.Entity<MovieRating>(entity =>
         {
             entity.HasKey(e => e.MovieRatingId).HasName("PK__MovieRat__AB2CC873E857B0AF");
 
-            entity.ToTable("MovieRating", tb =>
-                {
-                    tb.HasTrigger("UpdateMovieRatingOverall");
-                    tb.HasTrigger("trg_UpdateRatingCount");
-                });
+            entity.ToTable("MovieRating");
 
             entity.Property(e => e.Review)
                 .IsUnicode(false)
@@ -255,7 +236,6 @@ public partial class ReelTalkReviewsContext : DbContext
 
             entity.Property(e => e.Bio).IsUnicode(false);
             entity.Property(e => e.CreatedDate).HasColumnType("date");
-            entity.Property(e => e.DisplayPic).IsUnicode(false);
             entity.Property(e => e.Email)
                 .HasMaxLength(50)
                 .IsUnicode(false);

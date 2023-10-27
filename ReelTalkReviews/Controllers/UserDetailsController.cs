@@ -112,7 +112,7 @@ namespace ReelTalkReviews.Conrollers
             var newAccessToken = user.Token;
             var newRefreshToken = CreateRefreshtoken();
             user.RefreshToken = newRefreshToken;
-            user.RefreshTokenExpiry = DateTime.Now.AddDays(7);
+            user.RefreshTokenExpiry = DateTime.Now.AddMinutes(2);
             await _context.SaveChangesAsync();
             try
             {
@@ -181,7 +181,7 @@ namespace ReelTalkReviews.Conrollers
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = identity,
-                Expires = DateTime.Now.AddDays(1),
+                Expires = DateTime.Now.AddSeconds(50),
                 SigningCredentials = credentials
             };
             var token = jwtTokenHandler.CreateToken(tokenDescriptor);
@@ -271,35 +271,7 @@ namespace ReelTalkReviews.Conrollers
         {
             return (_context.UserDetails?.Any(e => e.UserId == id)).GetValueOrDefault();
         }
-        [HttpPost("send-reset-email/{email}")]
-        public async Task<IActionResult> SendEmail(string email)
-        {
-            var user = await _context.UserDetails.FirstOrDefaultAsync(a => a.Email == email);
-            if (user is null)
-            {
-                return NotFound(new
-                {
-                    StatusCode = 404,
-                    Message = "Email Doesn't Exist"
-                });
-            }
-            var tokenBytes = RandomNumberGenerator.GetBytes(64);
-            var emailToken = Convert.ToBase64String(tokenBytes);
-            user.ResetPasswordToken = emailToken;
-            user.ResetPasswordTokenExpiry = DateTime.Now.AddDays(7);
-            string from = _configuration["EmailSettings:From"];
-            var emailModel = new EmailModel(email, "Reset passwort", EmailBody.EmailStringBody(email, emailToken));
-            _emailService.SendEmail(emailModel);
-            _context.Entry(user).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-
-            return Ok(new
-            {
-                StatusCode = 200,
-                Message = "Email Sent"
-            });
-
-        }
+       
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword(ResetPasswordDto resetPasswordDto)
         {

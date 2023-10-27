@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using ReelTalkReviews.Models;
 using ReelTalkReviews.UtilitService;
 using System.Text;
+using static Org.BouncyCastle.Math.EC.ECCurve;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,10 +60,30 @@ builder.Services.AddAuthentication(authenticate =>
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("GnXXMmNjWUkjXQyJmoBesXgSRXEica7n")),
         ValidateAudience = false,
-        ValidateIssuer = false
+        ValidateIssuer = false ,
+        ClockSkew = TimeSpan.Zero
 
-    };
+    }; 
+ 
+
 });
+
+//builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+//        .AddJwtBearer(options =>
+//        {
+//            options.TokenValidationParameters = new TokenValidationParameters
+//            {
+//                ValidateIssuer = true,
+//                ValidateAudience = true,
+//                ValidateLifetime = true,
+//                ValidateIssuerSigningKey = true,
+//                ValidIssuer = _config.AuthenticationSettings.TokenAuthority,
+//                ValidAudience = _config.AuthenticationSettings.TokenAuthority,
+//                LifetimeValidator = TokenLifetimeValidator.Validate,
+//                IssuerSigningKey = new SymmetricSecurityKey(
+//                    Encoding.UTF8.GetBytes(_config.AuthenticationSettings.SecurityKey))
+//            };
+//        });
 builder.Services.AddMvc();
 builder.Services.AddControllers();
 builder.Services.AddRazorPages();
@@ -79,8 +101,8 @@ app.UseCors("AllowOrigin");
 app.UseStaticFiles();
 app.UseStaticFiles(new StaticFileOptions
 {
-    FileProvider=new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(),@"Resources")),
-    RequestPath=new PathString("/Resources")
+    FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), @"Resources")),
+    RequestPath = new PathString("/Resources")
 });
 app.UseHttpsRedirection();
 app.UseAuthentication();

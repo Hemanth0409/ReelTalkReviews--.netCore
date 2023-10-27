@@ -11,7 +11,7 @@ public partial class MovieDetail
 
     public string? MovieType { get; set; }
 
-    public string? MoviePoster { get; set; }
+    public byte[]? MoviePoster { get; set; }
 
     public decimal? MovieRatingOverall { get; set; }
 
@@ -25,27 +25,13 @@ public partial class MovieDetail
 
     public DateTime? ReleaseDate { get; set; }
 
-    public int? RatingCount { get; set; }
-
-    public string? MovieDescription { get; set; }
-
-    public string? MoviePoster2 { get; set; }
-
-    public string? Actor1 { get; set; }
-
-    public string? Actor2 { get; set; }
-
-    public string? Actor3 { get; set; }
-
-    public string? Director { get; set; }
-
-    public string? MusicDirector { get; set; }
-
     public virtual ICollection<CastDetail> CastDetails { get; set; } = new List<CastDetail>();
 
     public virtual ICollection<Crew> Crews { get; set; } = new List<Crew>();
 
     public virtual FilmCertification? FilmCertification { get; set; }
+
+    public virtual ICollection<MoviePhoto> MoviePhotos { get; set; } = new List<MoviePhoto>();
 
     public virtual ICollection<MovieRating> MovieRatings { get; set; } = new List<MovieRating>();
 }

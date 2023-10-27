@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 
 namespace ReelTalkReviews.Models;
 
@@ -8,12 +7,9 @@ public partial class UserDetail
 {
     public int UserId { get; set; }
 
-    [Required]
     public string UserName { get; set; } = null!;
-    [Required]
+
     public string? Email { get; set; }
-    [Required]
-    [RegularExpression(@"^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,15}$")]
 
     public string? Password { get; set; }
 
@@ -29,7 +25,7 @@ public partial class UserDetail
 
     public DateTime? LastLoginDate { get; set; }
 
-    public string? DisplayPic { get; set; }
+    public byte[]? DisplayPic { get; set; }
 
     public string? Token { get; set; }
 

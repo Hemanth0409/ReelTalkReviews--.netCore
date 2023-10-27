@@ -9,7 +9,7 @@ public partial class FilmIndustryMember
 
     public string? MemberName { get; set; }
 
-    public string? MemberPic { get; set; }
+    public byte[]? MemberPic { get; set; }
 
     public DateTime? DateOfBirth { get; set; }
 
