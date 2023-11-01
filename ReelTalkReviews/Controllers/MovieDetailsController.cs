@@ -12,7 +12,7 @@ namespace ReelTalkReviews.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
-    [Authorize]
+   
     public class MovieDetailsController : ControllerBase
     {
         private readonly ReelTalkReviewsContext _context;
@@ -42,7 +42,6 @@ namespace ReelTalkReviews.Controllers
                 return NotFound();
             }
             var movieDetail = await _context.MovieDetails.FindAsync(id);
-
             if (movieDetail == null)
             {
                 return NotFound();
@@ -64,7 +63,7 @@ namespace ReelTalkReviews.Controllers
         //{
         //    var certification = await _context.Certifications.FindAsync(id);
 
-           
+
         //    return certification;
         //}
 

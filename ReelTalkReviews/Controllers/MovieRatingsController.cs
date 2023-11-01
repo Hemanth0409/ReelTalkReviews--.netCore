@@ -112,10 +112,8 @@ namespace ReelTalkReviews.Controllers
             {
                 return NotFound();
             }
-
             _context.MovieRatings.Remove(movieRating);
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
 

@@ -18,6 +18,9 @@ using ReelTalkReviews.Models.Dto;
 using ReelTalkReviews.Helper;
 using ReelTalkReviews.UtilitService;
 using NETCore.MailKit;
+using ReelTalkReviews.ErrorInfo;
+using Microsoft.CodeAnalysis.FlowAnalysis.DataFlow;
+
 namespace ReelTalkReviews.Conrollers
 {
     [Route("api/[controller]/[action]")]
@@ -51,14 +54,13 @@ namespace ReelTalkReviews.Conrollers
 
             if (userDetail == null)
             {
-                return NotFound();
+                throw new UnAuthorizedException("User not Found");
             }
-
+          
             return userDetail;
         }
 
-        // PUT: api/UserDetails/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        
         [HttpPut("{id}")]
         public async Task<IActionResult> PutUserDetail(int id, UserDetail userDetail)
         {
@@ -77,15 +79,10 @@ namespace ReelTalkReviews.Conrollers
             {
                 if (!UserDetailExists(id))
                 {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
+                    throw new BadRequestException("User Id Not found");
                 }
             }
-
-            return NoContent();
+            throw  new BadRequestException("Data not found");
         }
         [HttpPost]
         public async Task<IActionResult> Authenticate([FromBody] UserLogin userObj)
@@ -97,22 +94,18 @@ namespace ReelTalkReviews.Conrollers
 
             UserDetail? user = await _context.UserDetails.FirstOrDefaultAsync(user => user.Email.ToLower() == userObj.Email.ToLower());
             if (user == null)
-                return NotFound(new { Message = "User not found!" });
+                throw new UnAuthorizedException("User not Found");
 
             if (!PasswordHasher.VerifyPassword(userObj.Password, user.Password))
             {
-                return BadRequest(new { Message = "Password is Incorrect" });
+                throw new UnAuthorizedException("Password Incorrect");
             }
-
-            if (user == null)
-
-                return NotFound(new { Message = "User Not Found" });
             user.LastLoginDate = DateTime.Now;
             user.Token = CreateJwt(user);
             var newAccessToken = user.Token;
             var newRefreshToken = CreateRefreshtoken();
             user.RefreshToken = newRefreshToken;
-            user.RefreshTokenExpiry = DateTime.Now.AddMinutes(2);
+            user.RefreshTokenExpiry = DateTime.Now.AddMinutes(3);
             await _context.SaveChangesAsync();
             try
             {
@@ -121,13 +114,14 @@ namespace ReelTalkReviews.Conrollers
             }
             catch (Exception Ex)
             {
-                return BadRequest(Ex.Message);
+                throw new BadRequestException(Ex.Message);
             }
 
-            return Ok(new TokenApiDto()
+            return Ok(new TokenApiDto() 
             {
                 AccessToken = newAccessToken,
                 RefreshToken = newRefreshToken
+
             });
         }
 
@@ -136,15 +130,15 @@ namespace ReelTalkReviews.Conrollers
         public async Task<ActionResult<UserDetail>> PostUserDetail([FromBody] UserDetail userDetail)
         {
             if (await CheckUserName(userDetail.UserName))
-                return BadRequest(new { Message = "UserName Already Exist!" });
+                throw new UnAuthorizedException("UserName Already Exist!");
             if (await CheckEmail(userDetail.Email))
-                return BadRequest(new { Message = "Email Already Exist!" });
+                throw new UnAuthorizedException("Email Already Exist!");
             userDetail.UserName = userDetail.UserName;
 
             userDetail.Email = userDetail.Email?.ToLower();
             userDetail.Password = PasswordHasher.HashPassword(userDetail.Password);
             userDetail.IsDeleted = false;
-            userDetail.RoleId = 2;
+            userDetail.RoleId = 1;
             userDetail.CreatedDate = DateTime.Now;
             userDetail.ModifiedDate = null;
             userDetail.Token = "";
@@ -181,14 +175,14 @@ namespace ReelTalkReviews.Conrollers
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = identity,
-                Expires = DateTime.Now.AddSeconds(50),
+                Expires = DateTime.Now.AddMinutes(1),
                 SigningCredentials = credentials
             };
             var token = jwtTokenHandler.CreateToken(tokenDescriptor);
             return jwtTokenHandler.WriteToken(token);
         }
         private string CreateRefreshtoken()
-        {
+            {
             var tokenBytes = RandomNumberGenerator.GetBytes(64);
             var refreshToken = Convert.ToBase64String(tokenBytes);
 

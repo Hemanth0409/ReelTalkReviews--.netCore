@@ -1,14 +1,12 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using ReelTalkReviews.Middleware;
 using ReelTalkReviews.Models;
 using ReelTalkReviews.UtilitService;
 using System.Text;
-using static Org.BouncyCastle.Math.EC.ECCurve;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,7 +19,7 @@ builder.Services.AddSwaggerGen();
 
 //Configure the Sql Server Database ConnectionStrings
 builder.Services.AddDbContext<ReelTalkReviewsContext>(options =>
-options.UseSqlServer(builder.Configuration.GetConnectionString("RTRConnectionString")));
+ options.UseSqlServer(builder.Configuration.GetConnectionString("RTRConnectionString")));
 builder.Services.AddCors();
 builder.Services.AddCors(options =>
 {
@@ -60,30 +58,16 @@ builder.Services.AddAuthentication(authenticate =>
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("GnXXMmNjWUkjXQyJmoBesXgSRXEica7n")),
         ValidateAudience = false,
-        ValidateIssuer = false ,
+        ValidateIssuer = false,
+        ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
 
-    }; 
- 
+    };
+
 
 });
+builder.Services.AddSingleton<ExceptionHandling>();
 
-//builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-//        .AddJwtBearer(options =>
-//        {
-//            options.TokenValidationParameters = new TokenValidationParameters
-//            {
-//                ValidateIssuer = true,
-//                ValidateAudience = true,
-//                ValidateLifetime = true,
-//                ValidateIssuerSigningKey = true,
-//                ValidIssuer = _config.AuthenticationSettings.TokenAuthority,
-//                ValidAudience = _config.AuthenticationSettings.TokenAuthority,
-//                LifetimeValidator = TokenLifetimeValidator.Validate,
-//                IssuerSigningKey = new SymmetricSecurityKey(
-//                    Encoding.UTF8.GetBytes(_config.AuthenticationSettings.SecurityKey))
-//            };
-//        });
 builder.Services.AddMvc();
 builder.Services.AddControllers();
 builder.Services.AddRazorPages();
@@ -107,9 +91,6 @@ app.UseStaticFiles(new StaticFileOptions
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-
-
-
+app.ExceptionHandling();
 app.Run();
