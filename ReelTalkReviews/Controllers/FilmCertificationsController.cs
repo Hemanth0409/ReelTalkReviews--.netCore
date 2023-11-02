@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ReelTalkReviews.Models;
+using ReelTalkReviews.RepoPattern;
 
 namespace ReelTalkReviews.Controllers
 {
@@ -14,12 +15,10 @@ namespace ReelTalkReviews.Controllers
     public class FilmCertificationsController : ControllerBase
     {
         private readonly ReelTalkReviewsContext _context;
-
         public FilmCertificationsController(ReelTalkReviewsContext context)
         {
             _context = context;
         }
-
         // GET: api/FilmCertifications
         [HttpGet]
         public async Task<ActionResult<IEnumerable<FilmCertification>>> GetFilmCertifications()

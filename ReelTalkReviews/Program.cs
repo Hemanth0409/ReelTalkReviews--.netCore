@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
+using ReelTalkReviews.Class;
 using ReelTalkReviews.Middleware;
 using ReelTalkReviews.Models;
+using ReelTalkReviews.RepoPattern;
 using ReelTalkReviews.UtilitService;
 using System.Text;
 
@@ -67,7 +69,9 @@ builder.Services.AddAuthentication(authenticate =>
 
 });
 builder.Services.AddSingleton<ExceptionHandling>();
-
+builder.Services.AddScoped(typeof(Oops));
+builder.Services.AddScoped(typeof(Token));
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddMvc();
 builder.Services.AddControllers();
 builder.Services.AddRazorPages();

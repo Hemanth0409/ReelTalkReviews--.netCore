@@ -6,11 +6,7 @@ namespace ReelTalkReviews.Middleware
 {
     public class ExceptionHandling :IMiddleware
     {
-        private readonly ILogger<ExceptionHandling> _logger;
-        public ExceptionHandling(ILogger<ExceptionHandling> logger)
-        {
-            _logger = logger;
-        }
+     
         public async Task InvokeAsync(HttpContext context, RequestDelegate next)
         {
 
@@ -21,7 +17,7 @@ namespace ReelTalkReviews.Middleware
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.Message);
+              
                 await HandleException(context, ex);
             }
         }
@@ -42,7 +38,9 @@ namespace ReelTalkReviews.Middleware
                 case ForbiddenException:
                     statusCode = StatusCodes.Status403Forbidden;
                     break;
-             
+                case SuccessException:
+                    statusCode = StatusCodes.Status200OK;
+                    break;
                 default :
                     statusCode = StatusCodes.Status500InternalServerError;
                     break;

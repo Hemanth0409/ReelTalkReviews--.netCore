@@ -1,304 +1,105 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.DotNet.Scaffolding.Shared.Messaging;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ReelTalkReviews.Models;
-using System;
-using System.Text;
-using System.Security.Claims;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.Authorization;
-using System.Security.Cryptography;
-using ReelTalkReviews.Models.Dto;
-using ReelTalkReviews.Helper;
-using ReelTalkReviews.UtilitService;
-using NETCore.MailKit;
+using ReelTalkReviews.Class;
 using ReelTalkReviews.ErrorInfo;
-using Microsoft.CodeAnalysis.FlowAnalysis.DataFlow;
+using ReelTalkReviews.Models;
+using ReelTalkReviews.Models.Dto;
+using ReelTalkReviews.RepoPattern;
 
 namespace ReelTalkReviews.Conrollers
 {
+#nullable disable
     [Route("api/[controller]/[action]")]
     [ApiController]
     public class UserDetailsController : ControllerBase
     {
+        private readonly IRepository<UserDetail> _userDetailsRepository;
         private readonly ReelTalkReviewsContext _context;
-        private readonly IConfiguration _configuration;
-        private readonly IEmailService _emailService;
-        public UserDetailsController(ReelTalkReviewsContext context, IConfiguration configuration, IEmailService emailService)
+        private readonly Oops _oops;
+        private readonly Token _token;
+
+        public UserDetailsController(ReelTalkReviewsContext context, IRepository<UserDetail> userDetailsRepository, Oops oops, Token token)
         {
+            _userDetailsRepository = userDetailsRepository;
             _context = context;
-            _configuration = configuration;
-            _emailService = emailService;
+            _oops = oops;
+            _token = token;
+
         }
 
+
+       
+
         // GET: api/UserDetails
-        [Authorize]
+        //[Authorize]
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<UserDetail>>> GetUserDetails()
+        public IEnumerable<UserDetail> GetUserDetails()
         {
-            return await _context.UserDetails.ToListAsync();
+            return _userDetailsRepository.GetAll();
         }
 
         // GET: api/UserDetails/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<UserDetail>> GetUserDetail(int id)
+        public UserDetail GetUserDetail(int id)
         {
 
-            var userDetail = await _context.UserDetails.FindAsync(id);
+            var userDetail = _userDetailsRepository.GetById(id);
 
             if (userDetail == null)
             {
-                throw new UnAuthorizedException("User not Found");
+                throw new NotFoundException("User not Found");
             }
-          
+
             return userDetail;
         }
 
-        
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutUserDetail(int id, UserDetail userDetail)
-        {
-            if (id != userDetail.UserId)
-            {
-                return BadRequest();
-            }
 
-            _context.Entry(userDetail).State = EntityState.Modified;
+        [HttpPut("{id}")]
+        public IActionResult PutUserDetail(int id, UserDetail userDetail)
+        {
 
             try
             {
-                await _context.SaveChangesAsync();
+                _userDetailsRepository.Update(userDetail);
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception ex)
             {
-                if (!UserDetailExists(id))
+                if (!_oops.UserDetailExists(id))
                 {
                     throw new BadRequestException("User Id Not found");
                 }
             }
-            throw  new BadRequestException("Data not found");
+            throw new SuccessException("Updated successfully");
+        }
+        [HttpPost]
+        public async Task<ActionResult<UserDetail>> PostUserDetail([FromBody] UserDetail userDetail)
+        {
+            await _oops.PostDetails(userDetail);
+            throw new SuccessException("Posted successfully");
         }
         [HttpPost]
         public async Task<IActionResult> Authenticate([FromBody] UserLogin userObj)
         {
-            if (userObj == null)
+            await _oops.AuthenticateUser(userObj);
+            throw new SuccessException("Logged Successfully");
+        }
+        [HttpDelete("{id}")]
+        public IActionResult DeleteUserDetail(int id, UserDetail userDetail)
+        {
 
-                return BadRequest();
-
-
-            UserDetail? user = await _context.UserDetails.FirstOrDefaultAsync(user => user.Email.ToLower() == userObj.Email.ToLower());
-            if (user == null)
-                throw new UnAuthorizedException("User not Found");
-
-            if (!PasswordHasher.VerifyPassword(userObj.Password, user.Password))
-            {
-                throw new UnAuthorizedException("Password Incorrect");
-            }
-            user.LastLoginDate = DateTime.Now;
-            user.Token = CreateJwt(user);
-            var newAccessToken = user.Token;
-            var newRefreshToken = CreateRefreshtoken();
-            user.RefreshToken = newRefreshToken;
-            user.RefreshTokenExpiry = DateTime.Now.AddMinutes(3);
-            await _context.SaveChangesAsync();
             try
             {
-                _context.Entry(user).State = EntityState.Modified;
-                _context.SaveChanges();
+                _userDetailsRepository.Delete(userDetail);
             }
-            catch (Exception Ex)
+            catch (DbUpdateConcurrencyException)
             {
-                throw new BadRequestException(Ex.Message);
+                if (!_oops.UserDetailExists(id))
+                {
+                    throw new BadRequestException("User Id Not found");
+                }
             }
-
-            return Ok(new TokenApiDto() 
-            {
-                AccessToken = newAccessToken,
-                RefreshToken = newRefreshToken
-
-            });
-        }
-
-        // POST: api/UserDetails
-        [HttpPost]
-        public async Task<ActionResult<UserDetail>> PostUserDetail([FromBody] UserDetail userDetail)
-        {
-            if (await CheckUserName(userDetail.UserName))
-                throw new UnAuthorizedException("UserName Already Exist!");
-            if (await CheckEmail(userDetail.Email))
-                throw new UnAuthorizedException("Email Already Exist!");
-            userDetail.UserName = userDetail.UserName;
-
-            userDetail.Email = userDetail.Email?.ToLower();
-            userDetail.Password = PasswordHasher.HashPassword(userDetail.Password);
-            userDetail.IsDeleted = false;
-            userDetail.RoleId = 1;
-            userDetail.CreatedDate = DateTime.Now;
-            userDetail.ModifiedDate = null;
-            userDetail.Token = "";
-            userDetail.Bio = userDetail.Bio;
-            userDetail.DisplayPic = userDetail.DisplayPic;
-            userDetail.LastLoginDate = null;
-
-            _context.UserDetails.Add(userDetail);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetUserDetail", new { id = userDetail.UserId }, userDetail);
-        }
-        private async Task<bool> CheckUserName(string UserName)
-                => await _context.UserDetails.AnyAsync(user => user.UserName == UserName);
-
-        private async Task<bool> CheckEmail(string Email)
-        => await _context.UserDetails.AnyAsync(user => user.Email == Email);
-
-        private string CreateJwt(UserDetail user)
-        {
-            var jwtTokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes("GnXXMmNjWUkjXQyJmoBesXgSRXEica7n");
-            var RoleName = _context.Roles.FirstOrDefault(x => x.RoleId == user.RoleId);
-            var identity = new ClaimsIdentity(new Claim[]
-            {
-                new Claim(ClaimTypes.Role,RoleName.RoleName),
-                new Claim(ClaimTypes.Name,user.UserName),
-                new Claim(JwtRegisteredClaimNames.Sub,user.UserId.ToString()),
-
-            });
-            //Use convert the Key into Bytes
-            var credentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
-
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = identity,
-                Expires = DateTime.Now.AddMinutes(1),
-                SigningCredentials = credentials
-            };
-            var token = jwtTokenHandler.CreateToken(tokenDescriptor);
-            return jwtTokenHandler.WriteToken(token);
-        }
-        private string CreateRefreshtoken()
-            {
-            var tokenBytes = RandomNumberGenerator.GetBytes(64);
-            var refreshToken = Convert.ToBase64String(tokenBytes);
-
-            var tokenUser = _context.UserDetails.Any(a => a.RefreshToken == refreshToken);
-            if (tokenUser)
-            {
-                return CreateRefreshtoken();
-            }
-            return refreshToken;
-        }
-
-        private ClaimsPrincipal GetPrincipleFromExpiredToken(string token)
-        {
-            var key = Encoding.ASCII.GetBytes("GnXXMmNjWUkjXQyJmoBesXgSRXEica7n");
-            var tokenValidationParameter = new TokenValidationParameters
-            {
-                ValidateAudience = false,
-                ValidateIssuer = false,
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
-                ValidateLifetime = false,
-            };
-            var tokenHandler = new JwtSecurityTokenHandler();
-            SecurityToken securityToken;
-            var pricipal = tokenHandler.ValidateToken(token, tokenValidationParameter, out securityToken);
-            var jwtSecurityToken = securityToken as JwtSecurityToken;
-            if (jwtSecurityToken == null || jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
-            {
-                throw new SecurityTokenException("This is Invalid");
-            }
-            return pricipal;
-        }
-        [HttpPost]
-        public async Task<IActionResult> Refresh(TokenApiDto tokenApiDto)
-        {
-            if (tokenApiDto is null)
-            {
-                return BadRequest("Invalid Client Request");
-            }
-            string accessToken = tokenApiDto.AccessToken;
-            string refreshToken = tokenApiDto.RefreshToken;
-            var pricipal = GetPrincipleFromExpiredToken(refreshToken);
-            var userName = pricipal.Identity.Name;
-            var user = await _context.UserDetails.FirstOrDefaultAsync(u => u.UserName == userName);
-            if (user is null || user.RefreshToken != refreshToken || user.RefreshTokenExpiry <= DateTime.Now)
-                return BadRequest("Invalid Request");
-            var newAccessToken = CreateJwt(user);
-            var newRefreshToken = CreateRefreshtoken();
-            user.RefreshToken = newRefreshToken;
-            await _context.SaveChangesAsync();
-            return Ok(new TokenApiDto()
-            {
-                AccessToken = newAccessToken,
-                RefreshToken = newRefreshToken,
-            });
-
-        }
-
-        // DELETE: api/UserDetails/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteUserDetail(int id)
-        {
-            if (_context.UserDetails == null)
-            {
-                return NotFound();
-            }
-            var userDetail = await _context.UserDetails.FindAsync(id);
-            if (userDetail == null)
-            {
-                return NotFound();
-            }
-
-            _context.UserDetails.Remove(userDetail);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool UserDetailExists(int id)
-        {
-            return (_context.UserDetails?.Any(e => e.UserId == id)).GetValueOrDefault();
+            throw new SuccessException("Deleted successfully");
         }
        
-        [HttpPost("reset-password")]
-        public async Task<IActionResult> ResetPassword(ResetPasswordDto resetPasswordDto)
-        {
-            var newtoken = resetPasswordDto.EmailToken.Replace("", "+");
-            var user = await _context.UserDetails.AsNoTracking().FirstOrDefaultAsync(a => a.Email == resetPasswordDto.Email);
-            if (user is null)
-            {
-                return NotFound(new
-                {
-                    StatusCode = 404,
-                    Message = "Email Doesn't Exist"
-                });
-            }
-            var tokenCode = user.ResetPasswordToken;
-            DateTime emailTokenExpiry = Convert.ToDateTime(user.ResetPasswordTokenExpiry);
-            if (tokenCode != resetPasswordDto.EmailToken || emailTokenExpiry < DateTime.Now)
-            {
-                return BadRequest(new
-                {
-                    StatusCode = 400,
-                    Message = "InValid Reset Link"
-                });
-            }
-            user.Password = PasswordHasher.HashPassword(resetPasswordDto.NewPassword);
-            _context.Entry(user).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-            return Ok(new
-            {
-                StatusCode = 200,
-                Message = "Password reset successfully!!"
-            });
-
-        }
-
     }
 }
